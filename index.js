@@ -6,7 +6,7 @@ const authRouter = require("./auth/auth-router")
 const usersRouter = require("./users/users-router")
 
 const server = express()
-const port = process.env.PORT || 5000
+const port = process.env.PORT || 5001
 
 server.use(cors())
 server.use(helmet())
