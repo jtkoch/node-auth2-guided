@@ -1,9 +1,8 @@
 const express = require("express")
 const bcrypt = require("bcryptjs")
-const Users = require("../users/users-model")
 const jwt = require("jsonwebtoken")
+const Users = require("../users/users-model")
 const restrict = require("../middleware/restrict")
-
 const router = express.Router()
 
 router.post("/register", async (req, res, next) => {
@@ -34,47 +33,26 @@ router.post("/login", async (req, res, next) => {
 			return res.status(401).json(authError)
 		}
 
-		// since bcrypt hashes generate different results due to the salting,
-		// we rely on the magic internals to compare hashes rather than doing it
-		// manually with "!=="
 		const passwordValid = await bcrypt.compare(req.body.password, user.password)
 		if (!passwordValid) {
 			return res.status(401).json(authError)
 		}
 
-		// creates a new session for the user and saves it in memory.
-		// it's this easy since we're using `express-session`
-		// req.session.user = user
-
 		const tokenPayload = {
 			userId: user.id,
-			userRole: "normal", // this would normally come from the database
+			userRole: "admin", // this would normally come from the database
 		}
 
-		const token = jwt.sign(tokenPayload, process.env.JWT_SECRET)
+		// this sends the token back as a cookie instead of in the request body,
+		// so the client will automatically save it in its cookie jar.
+		res.cookie("token", jwt.sign(tokenPayload, process.env.JWT_SECRET))
 
 		res.json({
 			message: `Welcome ${user.username}!`,
-			token: token  
 		})
 	} catch(err) {
 		next(err)
 	}
-})
-
-router.get("/logout", restrict(), (req, res, next) => {
-	// this will delete the session in the database and try to expire the cookie,
-	// though it's ultimately up to the client if they delete the cookie or not.
-	// but it becomes useless to them once the session is deleted server-side.
-	req.session.destroy((err) => {
-		if (err) {
-			next(err)
-		} else {
-			res.json({
-				message: "Logged out",
-			})
-		}
-	})
 })
 
 module.exports = router
